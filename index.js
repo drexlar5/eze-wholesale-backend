@@ -4,6 +4,7 @@ const formData = require('express-form-data');
 const os = require('os');
 
 const mongoConn = require('./src/config/connection');
+const config = require('./src/config/config')
 
 const smsRoute = require('./src/routes/products');
 const logger = require('./src/lib/logger');
@@ -16,7 +17,7 @@ const options = {
 
 const app = express();
 
-const port = 3001;
+const port = config.port || 3001;
 
 // CORS middleware
 app.use((req, res, next) => {
