@@ -17,7 +17,7 @@ const options = {
 
 const app = express();
 
-const port = config.port || 3001;
+const port = process.env.PORT || 3001;
 
 // CORS middleware
 app.use((req, res, next) => {
