@@ -6,7 +6,7 @@ const os = require('os');
 const mongoConn = require('./src/config/connection');
 const config = require('./src/config/config')
 
-const smsRoute = require('./src/routes/products');
+const productsRoute = require('./src/routes/products');
 const logger = require('./src/lib/logger');
 
 
@@ -35,7 +35,7 @@ app.use(formData.parse(options));
 
 app.use(bodyParser.json());
 
-app.use('/', smsRoute);
+app.use('/', productsRoute);
 
 app.use('/', (req, res, next) => res.status(404).json({ error: true, message: 'Not found.' }));
 
@@ -59,4 +59,4 @@ mongoConn.connection()
 .then(result => {
  app.listen(port, () => logger.info(`server connected at port: ${port}`));
 })
-.catch(err => console.log(err));
+.catch(err => console.log('index error', err));
