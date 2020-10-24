@@ -201,6 +201,7 @@ exports.searchProducts = async ({ queryString, category, page, perPage }) => {
     } else {
       let storageSize, condition, deviceName;
 
+      // format array and map respective value to key
       queryArray.map((string) => {
         let formattedString = string.toLowerCase().trim();
         if (formattedString.includes("iphone")) {
@@ -212,7 +213,13 @@ exports.searchProducts = async ({ queryString, category, page, perPage }) => {
         }
       });
 
-      if (storageSize && condition) {
+      if (deviceName && condition && storageSize) {
+        query = {
+          deviceName,
+          storageSize,
+          condition,
+        };
+      } else if (storageSize && condition) {
         query = {
           storageSize,
           condition,
@@ -226,12 +233,6 @@ exports.searchProducts = async ({ queryString, category, page, perPage }) => {
         query = {
           deviceName,
           storageSize,
-        };
-      } else {
-        query = {
-          deviceName,
-          storageSize,
-          condition,
         };
       }
     }

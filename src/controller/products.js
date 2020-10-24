@@ -19,7 +19,7 @@ exports.saveProducts = async (req, res, next) => {
     }
 
     const data = await productService.saveProducts(filePath);
-    logger.info("saveProducts::Controller::Data", data);
+    logger.info("Controller::saveProducts::Data", data);
     
     res.json({
       error: false,
@@ -56,7 +56,7 @@ exports.getProducts = async (req, res, next) => {
       });
     }
 
-    logger.info("getProducts::Controller::Data", data);
+    logger.info("Controller::getProducts::Data", data);
 
     res.json({
       error: false,
