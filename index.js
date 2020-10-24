@@ -1,10 +1,10 @@
+/* eslint-disable no-undef */
 const express = require('express');
 const bodyParser = require('body-parser');
 const formData = require('express-form-data');
 const os = require('os');
 
 const mongoConn = require('./src/config/connection');
-const config = require('./src/config/config')
 
 const productsRoute = require('./src/routes/products');
 const logger = require('./src/lib/logger');
@@ -37,10 +37,10 @@ app.use(bodyParser.json());
 
 app.use('/', productsRoute);
 
-app.use('/', (req, res, next) => res.status(404).json({ error: true, message: 'Not found.' }));
+app.use('/', (_req, res) => res.status(404).json({ error: true, message: 'Route Not found.' }));
 
 // Global error handler
-app.use((error, req, res, next) => {
+app.use((error, _req, res) => {
 
   const status = error.statusCode || 500;
   const message = error.message;
@@ -56,7 +56,7 @@ app.use((error, req, res, next) => {
 
 // Mongoose, app and websocket connection
 mongoConn.connection()
-.then(result => {
+.then(() => {
  app.listen(port, () => logger.info(`server connected at port: ${port}`));
 })
 .catch(err => console.log('index error', err));

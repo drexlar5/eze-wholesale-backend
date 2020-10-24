@@ -19,7 +19,8 @@ exports.saveProducts = async (req, res, next) => {
     }
 
     const data = await productService.saveProducts(filePath);
-    logger.info("data", data);
+    logger.info("saveProducts::Controller::Data", data);
+    
     res.json({
       error: false,
       message: "Products succesfully saved",
@@ -35,36 +36,28 @@ exports.saveProducts = async (req, res, next) => {
 
 exports.getProducts = async (req, res, next) => {
   try {
-    const { category, page, perPage } = req.query;
+    const { category, page, perPage, query, min, max } = req.query;
+    let data;
 
-    const data = await productService.getProducts({ category, page, perPage });
-    logger.info("data", data);
-    res.json({
-      error: false,
-      message: "Products succesfully fetched",
-      data,
-    });
-  } catch (error) {
-    if (!error.statusCode) {
-      error.statusCode = 500;
+    if (query != 'null') {
+      data = await productService.searchProducts({
+        queryString: query,
+        category,
+        page,
+        perPage,
+      });
+    } else {
+      data = await productService.getProducts({
+        category,
+        page,
+        perPage,
+        min: +min,
+        max: +max,
+      });
     }
-    next(error);
-  }
-}; //searchProducts
 
-exports.searchProducts = async (req, res, next) => {
-  try {
-    console.log('query', req.query)
-    const { queryString, category, page, perPage } = req.query;
+    logger.info("getProducts::Controller::Data", data);
 
-    const data = await productService.searchProducts({
-      queryString,
-      category,
-      page,
-      perPage,
-    });
-
-    logger.info("data", data);
     res.json({
       error: false,
       message: "Products succesfully fetched",
@@ -77,3 +70,4 @@ exports.searchProducts = async (req, res, next) => {
     next(error);
   }
 };
+

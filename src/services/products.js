@@ -3,7 +3,6 @@ const excelToJson = require("convert-excel-to-json");
 const BuyRequest = require("../models/BuyRequest");
 const SellRequest = require("../models/SellRequest");
 
-const config = require("../config/config");
 const logger = require("../lib/logger");
 
 /**
@@ -19,34 +18,35 @@ exports.saveProducts = async (filePath) => {
     });
 
     let deviceNames = [
-      "iPhone XS Max",
-      "iPhone XS",
-      "iPhone XR",
-      "iPhone X",
-      "iPhone 8 PLUS",
-      "iPhone 8",
-      "iPhone 7 Plus",
-      "iPhone 7",
-      "iPhone 6S Plus",
-      "iPhone 6S",
-      "iPhone 6 Plus",
-      "iPhone 6",
-      "iPhone SE",
+      "iphone xs max",
+      "iphone xs",
+      "iphone xr",
+      "iphone x",
+      "iphone 8 plus",
+      "iphone 8",
+      "iphone 7 plus",
+      "iphone 7",
+      "iphone 6s plus",
+      "iphone 6s",
+      "iphone 6 plus",
+      "iphone 6",
+      "iphone se",
     ];
+
     let buyRequestArray = [];
     let sellRequestArray = [];
     let deviceName;
     let storageSize;
-    let conditions = ["New", "A1", "A2", "B1", "B2", "C", "C/B", "C/D"];
+    let conditions = ["new", "a1", "a2", "a1", "a2", "c", "c/b", "c/d"];
     let conditionsCount = 0;
 
     for (const item of result.IPHONES) {
       for (let obj in item) {
-        if (obj === "A" && deviceNames.includes(item[obj]))
-          deviceName = item[obj];
+        if (obj === "A" && deviceNames.includes(item[obj].toLowerCase()))
+          deviceName = item[obj].toLowerCase();
 
         if (obj === "B" && item[obj] !== "Storage Size")
-          storageSize = item[obj];
+          storageSize = item[obj].toLowerCase();
 
         if (obj === "C" && typeof item[obj] === "string") break;
 
@@ -54,7 +54,7 @@ exports.saveProducts = async (filePath) => {
           let newObj = {
             deviceName,
             storageSize,
-            condition: conditions[conditionsCount % 8],
+            condition: conditions[conditionsCount % 8].toLowerCase(),
             price: item[obj],
           };
           buyRequestArray.push(newObj);
@@ -63,7 +63,7 @@ exports.saveProducts = async (filePath) => {
           let newObj = {
             deviceName,
             storageSize,
-            condition: conditions[conditionsCount % 8],
+            condition: conditions[conditionsCount % 8].toLowerCase(),
             price: item[obj],
           };
           conditionsCount++;
@@ -72,14 +72,14 @@ exports.saveProducts = async (filePath) => {
       }
     }
 
-    // const buyResult = await BuyRequest.insertMany(buyRequestArray);
-    // const sellResult = await SellRequest.insertMany(sellRequestArray);
+    const buyResult = await BuyRequest.insertMany(buyRequestArray);
+    const sellResult = await SellRequest.insertMany(sellRequestArray);
 
-    // if (buyResult.length < 1 || sellResult.length < 1) {
-    //   let error = new Error('File not saved');
-    //   error.statusCode = 501;
-    //   throw error;
-    // }
+    if (buyResult.length < 1 || sellResult.length < 1) {
+      let error = new Error("File not saved");
+      error.statusCode = 501;
+      throw error;
+    }
 
     return "file saved successfully";
   } catch (error) {
@@ -88,11 +88,25 @@ exports.saveProducts = async (filePath) => {
   }
 };
 
-const fetchProducts = async (category, currentPage, productsPerPage, query = {}) => {
+/**
+ * Fetches documents from the database
+ * returns array of total documents count and transformed documents
+ * @param category
+ * @param currentPage - (optional) for pagination
+ * @param productsPerPage - (optional) for pagination
+ * @param query - (optional) DB query logic
+ * @returns [totalData, paginatedData] - Array
+ */
+const fetchProducts = async (
+  category,
+  currentPage,
+  productsPerPage,
+  query = {}
+) => {
   let totalData;
   let paginatedData;
 
-  console.log(category, currentPage, productsPerPage, query)
+  logger.info("fetchProducts", query);
   if (category === "buyRequests") {
     totalData = await BuyRequest.find(query).countDocuments();
     paginatedData = await BuyRequest.find(query)
@@ -115,18 +129,28 @@ const fetchProducts = async (category, currentPage, productsPerPage, query = {})
  * @param category
  * @param page - (optional) for pagination
  * @param perPage - (optional) for pagination
+ * @param min - (optional) for range of prices
+ * @param max - (optional) for range of prices
  * @returns paginatedData - Array
  */
-exports.getProducts = async ({ category, page, perPage }) => {
+exports.getProducts = async ({ category, page, perPage, min, max }) => {
   try {
     const currentPage = parseInt(page, 10) || 1;
     const productsPerPage = parseInt(perPage, 10) || 10;
+    let query = {};
 
-    const [totalData, paginatedData] = await fetchProducts(category, currentPage, productsPerPage);
+    if (min && max) query = { price: { $lte: max, $gte: min } };
+
+    const [totalData, paginatedData] = await fetchProducts(
+      category,
+      currentPage,
+      productsPerPage,
+      query
+    );
 
     return {
       currentPage,
-      pages: Math.round(totalData / perPage),
+      pages: Math.ceil(totalData / perPage),
       totalData,
       paginatedData,
     };
@@ -149,34 +173,68 @@ exports.searchProducts = async ({ queryString, category, page, perPage }) => {
   const productsPerPage = parseInt(perPage, 10) || 10;
 
   try {
-    const query = {
-      $or: [
-        {
-          storageSize: {
-            $regex: queryString,
-            $options: "i",
+    let query;
+    let queryArray = queryString.split(",");
+    if (queryArray.length === 1) {
+      query = {
+        $or: [
+          {
+            storageSize: {
+              $regex: queryString.trim(),
+              $options: "i",
+            },
           },
-        },
-        {
-          condition: {
-            $regex: queryString,
-            $options: "i",
+          {
+            condition: {
+              $regex: queryString.trim(),
+              $options: "i",
+            },
           },
-        },
-        {
-          deviceName: {
-            $regex: queryString,
-            $options: "i",
+          {
+            deviceName: {
+              $regex: queryString.trim(),
+              $options: "i",
+            },
           },
-        },
-        // {
-        //   email: {
-        //     $regex: queryString,
-        //     $options: "i",
-        //   },
-        // },
-      ],
-    };
+        ],
+      };
+    } else {
+      let storageSize, condition, deviceName;
+
+      queryArray.map((string) => {
+        let formattedString = string.toLowerCase().trim();
+        if (formattedString.includes("iphone")) {
+          deviceName = formattedString;
+        } else if (formattedString.includes("gb")) {
+          storageSize = formattedString;
+        } else {
+          condition = formattedString;
+        }
+      });
+
+      if (storageSize && condition) {
+        query = {
+          storageSize,
+          condition,
+        };
+      } else if (deviceName && condition) {
+        query = {
+          deviceName,
+          condition,
+        };
+      } else if (storageSize && deviceName) {
+        query = {
+          deviceName,
+          storageSize,
+        };
+      } else {
+        query = {
+          deviceName,
+          storageSize,
+          condition,
+        };
+      }
+    }
 
     const [totalData, paginatedData] = await fetchProducts(
       category,
@@ -185,15 +243,9 @@ exports.searchProducts = async ({ queryString, category, page, perPage }) => {
       query
     );
 
-    console.log('a', totalData, paginatedData)
-
-    // if (totalData == 0) {
-    //   return null;
-    // }
-
     return {
       currentPage,
-      pages: Math.round(totalData / perPage),
+      pages: Math.ceil(totalData / perPage),
       totalData,
       paginatedData,
     };
