@@ -7,7 +7,7 @@ const logger = require("../lib/logger");
 
 /**
  * Saves the content of an excel file to database
- * NB: **this function work as stated only when the structure iof the excel file is adhered to**
+ * NB: **this function work as stated only when the structure of the excel file is adhered to**
  * @param filePath
  * @returns message - String
  */
@@ -89,7 +89,7 @@ exports.saveProducts = async (filePath) => {
 };
 
 /**
- * Fetches documents from the database
+ * Fetches documents from the database based on the query passed
  * returns array of total documents count and transformed documents
  * @param category
  * @param currentPage - (optional) for pagination
@@ -124,14 +124,14 @@ const fetchProducts = async (
 };
 
 /**
- * Fetches all documents from the database
+ * Fetches all documents from the database or array of document that matches a price range passed
  * returns ten documents when @param perPage is not set
  * @param category
  * @param page - (optional) for pagination
  * @param perPage - (optional) for pagination
  * @param min - (optional) for range of prices
  * @param max - (optional) for range of prices
- * @returns paginatedData - Array
+ * @returns { currentPage, pages, totalData, paginatedData } - Object
  */
 exports.getProducts = async ({ category, page, perPage, min, max }) => {
   try {
@@ -161,12 +161,12 @@ exports.getProducts = async ({ category, page, perPage, min, max }) => {
 };
 
 /**
- * Performs partial text search on user model,
- * returns a maximum of two documents when @param perPage is not set
+ * Performs partial text and full search on database,
+ * returns ten documents when @param perPage is not set
  * @param queryString
  * @param page - (optional) for pagination
  * @param perPage - (optional) for pagination
- * @returns users - Array
+ * @returns { currentPage, pages, totalData, paginatedData } - Object
  */
 exports.searchProducts = async ({ queryString, category, page, perPage }) => {
   const currentPage = parseInt(page, 10) || 1;
@@ -176,6 +176,7 @@ exports.searchProducts = async ({ queryString, category, page, perPage }) => {
     let query;
     let queryArray = queryString.split(",");
     if (queryArray.length === 1) {
+      // Partial text search query
       query = {
         $or: [
           {
